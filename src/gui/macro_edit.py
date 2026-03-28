@@ -81,7 +81,7 @@ class _MacroDialog:
         ttk.Entry(f, textvariable=self._trigger_var, width=20).grid(
             row=3, column=1, columnspan=2, sticky="w", **pad
         )
-        ttk.Label(f, text="e.g.  :pw1:", foreground="gray").grid(
+        ttk.Label(f, text="e.g.  myaddr  or  sig1", foreground="gray").grid(
             row=4, column=1, columnspan=2, sticky="w", padx=10
         )
 
@@ -134,9 +134,6 @@ class _MacroDialog:
         hotkey = "" if hk_display == "(none)" else self._display_to_hk(hk_display)
 
         trigger = self._trigger_var.get().strip()
-        if trigger and not (trigger.startswith(":") and trigger.endswith(":") and len(trigger) > 2):
-            self._err_var.set("Trigger must be in :name: format (e.g. :pw1:)")
-            return
 
         if self._existing:
             macro = dict(self._existing)
