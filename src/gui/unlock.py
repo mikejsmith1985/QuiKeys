@@ -1,6 +1,5 @@
 """Unlock / first-run dialog."""
 
-import threading
 import tkinter as tk
 from tkinter import ttk, messagebox
 from typing import Optional
@@ -106,10 +105,8 @@ class _UnlockDialog:
                 return
 
         self._set_busy(True)
-        threading.Thread(target=self._run_vault_op, args=(pw,), daemon=True).start()
+        self.top.update()  # flush UI before blocking call
 
-    def _run_vault_op(self, pw: str) -> None:
-        """Run the (slow) vault operation off the main thread."""
         try:
             if self._is_first_run:
                 vault_data = vault.create_vault(pw)
@@ -117,17 +114,19 @@ class _UnlockDialog:
                 try:
                     vault_data = vault.load_vault(pw)
                 except FileNotFoundError:
-                    self.top.after(0, lambda: self._finish_error("Vault file not found."))
+                    self._finish_error("Vault file not found.")
                     return
                 if vault_data is None:
-                    self.top.after(0, lambda: self._finish_wrong_password())
+                    self._finish_wrong_password()
                     return
-        except Exception as exc:  # noqa: BLE001
-            msg = str(exc)
-            self.top.after(0, lambda: self._finish_error(f"Error: {msg}"))
+        except Exception as exc:
+            self._finish_error(f"Error: {exc}")
             return
 
-        self.top.after(0, lambda: self._finish_ok(vault_data, pw))
+        self._finish_ok(vault_data, pw)
+
+    def _run_vault_op(self, pw: str) -> None:
+        pass  # no longer used
 
     def _finish_ok(self, vault_data: dict, pw: str) -> None:
         self.result = (vault_data, pw)
