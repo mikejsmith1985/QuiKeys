@@ -1,6 +1,6 @@
 {
   "name": "quikeys",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Secure macro & hotkey manager — encrypted vault, keystroke simulation, system tray",
   "private": true,
   "scripts": {
