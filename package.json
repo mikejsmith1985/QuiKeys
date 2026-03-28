@@ -1,0 +1,12 @@
+{
+  "name": "quikeys",
+  "version": "0.1.0",
+  "description": "Secure macro & hotkey manager — encrypted vault, keystroke simulation, system tray",
+  "private": true,
+  "scripts": {
+    "build:win": "powershell -ExecutionPolicy Bypass -File build.ps1",
+    "build:mac": "bash build-mac.sh"
+  },
+  "keywords": ["hotkey", "macro", "password", "text-expansion", "pynput"],
+  "license": "MIT"
+}

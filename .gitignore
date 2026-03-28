@@ -1,0 +1,20 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+dist/
+build/
+*.spec
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Vault files (never commit)
+*.qkv
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.user
