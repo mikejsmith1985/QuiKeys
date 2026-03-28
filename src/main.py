@@ -234,9 +234,9 @@ def main() -> None:
         tray = _build_tray_icon()
         tray_thread = threading.Thread(target=_run_tray, args=(tray,), daemon=True)
         tray_thread.start()
-    else:
-        # Fallback: open manager directly (no tray support)
-        _open_manager()
+
+    # Always open manager on startup so the user sees the UI immediately
+    _open_manager()
 
     # Run Tk event loop (keeps dialogs and manager window alive)
     _root.mainloop()
