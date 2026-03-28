@@ -1,5 +1,6 @@
 """Unlock / first-run dialog."""
 
+import threading
 import tkinter as tk
 from tkinter import ttk, messagebox
 from typing import Optional
@@ -88,8 +89,10 @@ class _UnlockDialog:
         btn_frame = ttk.Frame(f)
         btn_frame.grid(row=row, column=0, columnspan=2, pady=(8, 0))
         label = "Create Vault" if self._is_first_run else "Unlock"
-        ttk.Button(btn_frame, text=label, command=self._on_submit).pack(side="left", padx=4)
-        ttk.Button(btn_frame, text="Cancel", command=self._on_cancel).pack(side="left", padx=4)
+        self._submit_btn = ttk.Button(btn_frame, text=label, command=self._on_submit)
+        self._submit_btn.pack(side="left", padx=4)
+        self._cancel_btn = ttk.Button(btn_frame, text="Cancel", command=self._on_cancel)
+        self._cancel_btn.pack(side="left", padx=4)
 
         self.top.bind("<Return>", lambda _: self._on_submit())
         self.top.bind("<Escape>", lambda _: self._on_cancel())
@@ -105,21 +108,54 @@ class _UnlockDialog:
             if pw != pw2:
                 self._err_var.set("Passwords do not match.")
                 return
-            vault_data = vault.create_vault(pw)
-            self.result = (vault_data, pw)
-            self.top.destroy()
+
+        self._set_busy(True)
+        threading.Thread(target=self._run_vault_op, args=(pw,), daemon=True).start()
+
+    def _run_vault_op(self, pw: str) -> None:
+        """Run the (slow) vault operation off the main thread."""
+        try:
+            if self._is_first_run:
+                vault_data = vault.create_vault(pw)
+            else:
+                try:
+                    vault_data = vault.load_vault(pw)
+                except FileNotFoundError:
+                    self.top.after(0, lambda: self._finish_error("Vault file not found."))
+                    return
+                if vault_data is None:
+                    self.top.after(0, lambda: self._finish_wrong_password())
+                    return
+        except Exception as exc:  # noqa: BLE001
+            msg = str(exc)
+            self.top.after(0, lambda: self._finish_error(f"Error: {msg}"))
+            return
+
+        self.top.after(0, lambda: self._finish_ok(vault_data, pw))
+
+    def _finish_ok(self, vault_data: dict, pw: str) -> None:
+        self.result = (vault_data, pw)
+        self.top.destroy()
+
+    def _finish_error(self, msg: str) -> None:
+        self._set_busy(False)
+        self._err_var.set(msg)
+
+    def _finish_wrong_password(self) -> None:
+        self._set_busy(False)
+        self._err_var.set("Wrong password. Please try again.")
+        self._pw_entry.select_range(0, "end")
+        self._pw_entry.focus_set()
+
+    def _set_busy(self, busy: bool) -> None:
+        state = "disabled" if busy else "normal"
+        self._submit_btn.config(state=state)
+        self._cancel_btn.config(state=state)
+        if busy:
+            self._err_var.set("Please wait…")
         else:
-            try:
-                vault_data = vault.load_vault(pw)
-            except FileNotFoundError:
-                self._err_var.set("Vault file not found.")
-                return
-            if vault_data is None:
-                self._err_var.set("Wrong password. Please try again.")
-                self._pw_entry.select_range(0, "end")
-                return
-            self.result = (vault_data, pw)
-            self.top.destroy()
+            if self._err_var.get() == "Please wait…":
+                self._err_var.set("")
 
     def _on_cancel(self) -> None:
         self.result = None
