@@ -108,7 +108,7 @@ def _do_unlock() -> bool:
     from gui.unlock import run_unlock_dialog
 
     is_first_run = not vault_mod.vault_exists()
-    result = run_unlock_dialog(is_first_run=is_first_run)
+    result = run_unlock_dialog(parent=_root, is_first_run=is_first_run)
     if result is None:
         return False
 

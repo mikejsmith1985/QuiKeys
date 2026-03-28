@@ -8,19 +8,15 @@ from typing import Optional
 import vault
 
 
-def run_unlock_dialog(is_first_run: bool = False) -> Optional[tuple[dict, str]]:
+def run_unlock_dialog(parent: tk.Tk, is_first_run: bool = False) -> Optional[tuple[dict, str]]:
     """
     Show the unlock (or first-run) dialog.
 
     Returns (vault_data, password) on success, or None if the user cancels.
     Blocks until the dialog closes.
     """
-    root = tk.Tk()
-    root.withdraw()
-
-    dlg = _UnlockDialog(root, is_first_run=is_first_run)
-    root.wait_window(dlg.top)
-    root.destroy()
+    dlg = _UnlockDialog(parent, is_first_run=is_first_run)
+    parent.wait_window(dlg.top)
 
     return dlg.result
 
