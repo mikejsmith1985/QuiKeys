@@ -7,7 +7,7 @@
 #>
 
 $ErrorActionPreference = "Stop"
-$Version = "0.1.0"
+$Version = (Get-Content package.json | ConvertFrom-Json).version
 $AppName = "QuiKeys"
 
 Write-Host "=== QuiKeys Windows Build ===" -ForegroundColor Cyan
@@ -33,8 +33,8 @@ $spec_args = @(
     "--name", $AppName
     "--onefile"
     "--windowed"
-    "--icon", "assets\icon.ico"
-    "--add-data", "assets;assets"
+    "--icon", "$PWD\assets\icon.ico"
+    "--add-data", "$PWD\assets;assets"
     "--paths", "src"
     "--hidden-import", "pystray._win32"
     "--hidden-import", "PIL._tkinter_finder"
