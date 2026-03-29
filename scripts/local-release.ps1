@@ -88,7 +88,22 @@ if ($prevTag) {
 }
 
 $env:GH_TOKEN = $null   # ensure keyring credential is used, not a stale env token
-gh release create "v$newVersion" --title "v$newVersion" --notes $notes
+
+# ── Build Windows artifact ────────────────────────────────────────────
+Write-Host "Building Windows artifact..." -ForegroundColor Yellow
+& "$PSScriptRoot\..\build.ps1"
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Build failed — release aborted."
+    exit 1
+}
+
+$zipPath = "$PSScriptRoot\..\dist\QuiKeys-windows-v$newVersion.zip"
+if (-not (Test-Path $zipPath)) {
+    Write-Error "Expected artifact not found: $zipPath"
+    exit 1
+}
+
+gh release create "v$newVersion" --title "v$newVersion" --notes $notes "$zipPath"
 
 Write-Host ""
 Write-Host "✅ Released v$newVersion" -ForegroundColor Green
