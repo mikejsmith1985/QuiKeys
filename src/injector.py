@@ -4,6 +4,7 @@ The clipboard is never touched.
 """
 
 import time
+import threading
 import platform
 
 from pynput.keyboard import Controller, Key
@@ -11,6 +12,16 @@ from pynput.keyboard import Controller, Key
 from config import INJECT_CHAR_DELAY
 
 _keyboard = Controller()
+
+# Set to True while any injection is in progress so the Expander's listener
+# can suppress those synthetic keystrokes and avoid false trigger matches.
+_injecting = False
+_injecting_lock = threading.Lock()
+
+
+def is_injecting() -> bool:
+    """Return True while inject_text() is actively sending keystrokes."""
+    return _injecting
 
 
 def inject_text(text: str, char_delay: float = INJECT_CHAR_DELAY) -> None:
@@ -20,10 +31,17 @@ def inject_text(text: str, char_delay: float = INJECT_CHAR_DELAY) -> None:
     A small per-character delay is applied so slow apps (e.g. web SSO portals)
     can keep up.
     """
-    for char in text:
-        _keyboard.type(char)
-        if char_delay > 0:
-            time.sleep(char_delay)
+    global _injecting
+    with _injecting_lock:
+        _injecting = True
+    try:
+        for char in text:
+            _keyboard.type(char)
+            if char_delay > 0:
+                time.sleep(char_delay)
+    finally:
+        with _injecting_lock:
+            _injecting = False
 
 
 def press_backspace(n: int) -> None:

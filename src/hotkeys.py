@@ -86,18 +86,26 @@ def _to_pynput_hotkey(hk: str) -> str:
 def _make_handler(text: str) -> Callable:
     """Return a closure that injects *text* when called."""
     def handler():
-        from pynput.keyboard import Controller, Key
-        import time
-        kb = Controller()
-        # Release all modifier keys before typing — they are still held
-        # when the GlobalHotKeys callback fires, corrupting injected text.
-        for mod in (Key.ctrl, Key.ctrl_l, Key.ctrl_r,
-                    Key.shift, Key.shift_l, Key.shift_r,
-                    Key.alt, Key.alt_l, Key.alt_r):
-            try:
-                kb.release(mod)
-            except Exception:
-                pass
-        time.sleep(0.05)  # let the OS process the releases
-        injector.inject_text(text)
+        # Run injection in a daemon thread so we return from the
+        # GlobalHotKeys callback immediately.  Calling SendInput from
+        # inside a WH_KEYBOARD_LL hook callback can cause Windows to
+        # re-process the injected events, producing duplicate characters.
+        threading.Thread(target=_do_inject, args=(text,), daemon=True).start()
     return handler
+
+
+def _do_inject(text: str) -> None:
+    from pynput.keyboard import Controller, Key
+    import time
+    kb = Controller()
+    # Release all modifier keys before typing — they are still held
+    # when the GlobalHotKeys callback fires, corrupting injected text.
+    for mod in (Key.ctrl, Key.ctrl_l, Key.ctrl_r,
+                Key.shift, Key.shift_l, Key.shift_r,
+                Key.alt, Key.alt_l, Key.alt_r):
+        try:
+            kb.release(mod)
+        except Exception:
+            pass
+    time.sleep(0.05)  # let the OS process the releases
+    injector.inject_text(text)

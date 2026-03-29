@@ -47,7 +47,7 @@ class Expander:
 
     # ------------------------------------------------------------------
     def _on_press(self, key) -> None:
-        if self._suppressing:
+        if self._suppressing or injector.is_injecting():
             return
 
         with self._lock:
