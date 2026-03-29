@@ -74,5 +74,21 @@ Write-Host "  Committed and tagged v$newVersion" -ForegroundColor Gray
 git push origin HEAD
 git push origin "v$newVersion"
 
+Write-Host "  Pushed commits and tag" -ForegroundColor Gray
+
+# ── GitHub Release ────────────────────────────────────────────────────
+# Collect all commits since the previous tag for release notes
+$prevTag = git describe --tags --abbrev=0 "v$newVersion^" 2>$null
+if ($prevTag) {
+    $commitLog = git --no-pager log "$prevTag..v$newVersion" --pretty=format:"- %s" --no-merges |
+                 Where-Object { $_ -notmatch '^- chore: release' }
+    $notes = "## What's Changed`n`n$($commitLog -join "`n")"
+} else {
+    $notes = "Initial release v$newVersion"
+}
+
+$env:GH_TOKEN = $null   # ensure keyring credential is used, not a stale env token
+gh release create "v$newVersion" --title "v$newVersion" --notes $notes
+
 Write-Host ""
 Write-Host "✅ Released v$newVersion" -ForegroundColor Green
