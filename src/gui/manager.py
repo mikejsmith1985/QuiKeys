@@ -13,7 +13,7 @@ from typing import Callable, Optional
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 import vault as vault_mod
-from config import APP_NAME, STARTUP_REG_KEY, STARTUP_REG_VALUE
+from config import APP_NAME, STARTUP_REG_KEY, STARTUP_REG_VALUE, CLIPBOARD_CLEAR_DELAY
 
 try:
     from gui.macro_edit import run_macro_dialog
@@ -100,6 +100,7 @@ class ManagerWindow:
         settings_frame = ttk.Frame(nb, padding=16)
         nb.add(settings_frame, text="Settings")
 
+        row = 0
         if platform.system() == "Windows":
             self._startup_var = tk.BooleanVar(value=_get_startup_enabled())
             ttk.Checkbutton(
@@ -107,18 +108,69 @@ class ManagerWindow:
                 text="Launch QuiKeys automatically when Windows starts",
                 variable=self._startup_var,
                 command=self._on_startup_toggle,
-            ).grid(row=0, column=0, sticky="w")
+            ).grid(row=row, column=0, columnspan=2, sticky="w")
+            row += 1
             ttk.Label(
                 settings_frame,
                 text="(Uses HKCU Run registry key — no admin required)",
                 foreground="gray",
-            ).grid(row=1, column=0, sticky="w", padx=20)
+            ).grid(row=row, column=0, columnspan=2, sticky="w", padx=20)
+            row += 1
         else:
             ttk.Label(
                 settings_frame,
                 text="Auto-startup is configured via your OS login items\n"
                      "or by adding QuiKeys to your shell profile.",
-            ).grid(row=0, column=0, sticky="w")
+            ).grid(row=row, column=0, columnspan=2, sticky="w")
+            row += 1
+
+        ttk.Separator(settings_frame, orient="horizontal").grid(
+            row=row, column=0, columnspan=2, sticky="ew", pady=10
+        )
+        row += 1
+
+        # Clipboard mode
+        current = vault_mod.get_settings(self._vault)
+        self._clipboard_var = tk.BooleanVar(value=current.get("clipboard_mode", False))
+        cb = ttk.Checkbutton(
+            settings_frame,
+            text="Copy to clipboard instead of typing",
+            variable=self._clipboard_var,
+            command=self._on_clipboard_toggle,
+        )
+        cb.grid(row=row, column=0, columnspan=2, sticky="w")
+        row += 1
+        ttk.Label(
+            settings_frame,
+            text="Hotkey macros always copy to clipboard — press Ctrl+V to paste\n"
+                 "into secure fields. Enable this to use clipboard for all macros.",
+            foreground="gray",
+        ).grid(row=row, column=0, columnspan=2, sticky="w", padx=20)
+        row += 1
+
+        # Auto-clear delay
+        clear_frame = ttk.Frame(settings_frame)
+        clear_frame.grid(row=row, column=0, columnspan=2, sticky="w", padx=20, pady=(6, 0))
+        row += 1
+
+        ttk.Label(clear_frame, text="Auto-clear clipboard after").pack(side="left")
+        self._clear_delay_var = tk.DoubleVar(
+            value=current.get("clipboard_clear_delay", CLIPBOARD_CLEAR_DELAY)
+        )
+        self._clear_spin = ttk.Spinbox(
+            clear_frame,
+            from_=0,
+            to=300,
+            increment=5,
+            width=5,
+            textvariable=self._clear_delay_var,
+            command=self._on_clear_delay_change,
+        )
+        self._clear_spin.pack(side="left", padx=4)
+        ttk.Label(clear_frame, text="seconds  (0 = never)").pack(side="left")
+        self._clear_spin.bind("<FocusOut>", lambda _: self._on_clear_delay_change())
+
+        self._update_clear_delay_state()
 
     # ------------------------------------------------------------------
     def _refresh_list(self) -> None:
@@ -183,6 +235,29 @@ class ManagerWindow:
 
     def _on_startup_toggle(self) -> None:
         _set_startup_enabled(self._startup_var.get())
+
+    def _on_clipboard_toggle(self) -> None:
+        self._save_settings()
+        self._update_clear_delay_state()
+
+    def _on_clear_delay_change(self) -> None:
+        self._save_settings()
+
+    def _update_clear_delay_state(self) -> None:
+        state = "normal" if self._clipboard_var.get() else "disabled"
+        self._clear_spin.configure(state=state)
+
+    def _save_settings(self) -> None:
+        try:
+            delay = float(self._clear_delay_var.get())
+        except (ValueError, tk.TclError):
+            delay = CLIPBOARD_CLEAR_DELAY
+        settings = {
+            "clipboard_mode": self._clipboard_var.get(),
+            "clipboard_clear_delay": max(0.0, delay),
+        }
+        vault_mod.update_settings(self._vault, settings)
+        vault_mod.save_vault(self._vault, self._password)
 
 
 # ---------------------------------------------------------------------------

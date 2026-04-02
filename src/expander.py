@@ -26,8 +26,13 @@ from config import EXPANSION_BUFFER_SIZE
 
 
 class Expander:
-    def __init__(self, get_macros: Callable[[], list]) -> None:
+    def __init__(
+        self,
+        get_macros: Callable[[], list],
+        get_settings: Callable[[], dict] | None = None,
+    ) -> None:
         self._get_macros = get_macros
+        self._get_settings = get_settings or (lambda: {})
         self._buffer: list[str] = []
         self._listener: keyboard.Listener | None = None
         self._lock = threading.Lock()
@@ -91,8 +96,15 @@ class Expander:
     def _do_expand(self, erase_count: int, text: str) -> None:
         self._suppressing = True
         try:
-            injector.press_backspace(erase_count)
-            injector.inject_text(text)
+            settings = self._get_settings()
+            if settings.get("clipboard_mode"):
+                from clipboard import copy_to_clipboard
+                clear_delay = float(settings.get("clipboard_clear_delay", 0.0))
+                injector.press_backspace(erase_count)
+                copy_to_clipboard(text, clear_after=clear_delay)
+            else:
+                injector.press_backspace(erase_count)
+                injector.inject_text(text)
         finally:
             self._suppressing = False
 

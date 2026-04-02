@@ -124,3 +124,23 @@ def update_macro(vault_data: dict, macro: dict) -> None:
 
 def delete_macro(vault_data: dict, macro_id: str) -> None:
     vault_data["macros"] = [m for m in vault_data["macros"] if m["id"] != macro_id]
+
+
+# ---------------------------------------------------------------------------
+# Settings helpers
+# ---------------------------------------------------------------------------
+
+DEFAULT_SETTINGS: dict = {
+    "clipboard_mode": False,
+    "clipboard_clear_delay": 30.0,
+}
+
+
+def get_settings(vault_data: dict) -> dict:
+    """Return current settings merged with defaults (safe for older vaults)."""
+    return {**DEFAULT_SETTINGS, **vault_data.get("settings", {})}
+
+
+def update_settings(vault_data: dict, settings: dict) -> None:
+    """Write *settings* into *vault_data* (call save_vault afterwards)."""
+    vault_data["settings"] = settings

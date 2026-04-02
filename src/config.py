@@ -26,6 +26,9 @@ INJECT_CHAR_DELAY = 0.012  # 12ms default
 STARTUP_REG_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 STARTUP_REG_VALUE = APP_NAME
 
+# Clipboard mode — seconds before auto-clearing the clipboard (0 = never)
+CLIPBOARD_CLEAR_DELAY = 30.0
+
 # System tray icon size
 ICON_SIZE = (64, 64)
 

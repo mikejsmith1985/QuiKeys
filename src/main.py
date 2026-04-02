@@ -57,6 +57,11 @@ def _get_macros() -> list:
     return STATE.vault_data.get("macros", [])
 
 
+def _get_settings() -> dict:
+    import vault as vault_mod
+    return vault_mod.get_settings(STATE.vault_data)
+
+
 def _load_icon() -> Image.Image:
     """Load icon from assets, or generate on the fly if missing."""
     icon_path = os.path.join(
@@ -82,10 +87,10 @@ def _start_listeners() -> None:
     if _expander:
         _expander.stop()
 
-    _hotkey_mgr = HotkeyManager(_get_macros)
+    _hotkey_mgr = HotkeyManager(_get_macros, _get_settings)
     _hotkey_mgr.start()
 
-    _expander = Expander(_get_macros)
+    _expander = Expander(_get_macros, _get_settings)
     _expander.start()
 
 

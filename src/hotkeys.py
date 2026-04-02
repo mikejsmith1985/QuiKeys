@@ -25,8 +25,13 @@ import injector
 
 
 class HotkeyManager:
-    def __init__(self, get_macros: Callable[[], list]) -> None:
+    def __init__(
+        self,
+        get_macros: Callable[[], list],
+        get_settings: Callable[[], dict] | None = None,
+    ) -> None:
         self._get_macros = get_macros
+        self._get_settings = get_settings or (lambda: {})
         self._listener: keyboard.GlobalHotKeys | None = None
         self._lock = threading.Lock()
 
@@ -61,9 +66,8 @@ class HotkeyManager:
             if not hk:
                 continue
             text = macro.get("text", "")
-            # pynput expects e.g. "<ctrl>+<shift>+1"
             pynput_hk = _to_pynput_hotkey(hk)
-            mapping[pynput_hk] = _make_handler(text)
+            mapping[pynput_hk] = _make_handler(text, self._get_settings)
         return mapping
 
 
@@ -83,18 +87,25 @@ def _to_pynput_hotkey(hk: str) -> str:
     return "+".join(result)
 
 
-def _make_handler(text: str) -> Callable:
-    """Return a closure that injects *text* when called."""
+def _make_handler(text: str, get_settings: Callable) -> Callable:
+    """Return a closure that delivers *text* when called."""
     def handler():
-        # Run injection in a daemon thread so we return from the
-        # GlobalHotKeys callback immediately.  Calling SendInput from
-        # inside a WH_KEYBOARD_LL hook callback can cause Windows to
-        # re-process the injected events, producing duplicate characters.
-        threading.Thread(target=_do_inject, args=(text,), daemon=True).start()
+        threading.Thread(target=_do_inject, args=(text, get_settings), daemon=True).start()
     return handler
 
 
-def _do_inject(text: str) -> None:
+def _do_inject(text: str, get_settings: Callable) -> None:
+    from clipboard import copy_to_clipboard
+    settings = get_settings()
+    clear_delay = float(settings.get("clipboard_clear_delay", 0.0))
+
+    if settings.get("clipboard_mode"):
+        # Clipboard-only mode: just copy, no keystroke injection.
+        copy_to_clipboard(text, clear_after=clear_delay)
+        return
+
+    # Normal mode: inject keystrokes AND copy to clipboard so the user
+    # can paste into secure fields (UAC, password inputs, etc.) with Ctrl+V.
     from pynput.keyboard import Controller, Key
     import time
     kb = Controller()
@@ -108,4 +119,5 @@ def _do_inject(text: str) -> None:
         except Exception:
             pass
     time.sleep(0.05)  # let the OS process the releases
+    copy_to_clipboard(text, clear_after=clear_delay)
     injector.inject_text(text)
