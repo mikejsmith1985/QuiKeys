@@ -40,7 +40,7 @@ switch ($Bump) {
 }
 $newVersion = "$major.$minor.$patch"
 
-Write-Host "Releasing $current → $newVersion" -ForegroundColor Cyan
+Write-Host "Releasing $current -> $newVersion" -ForegroundColor Cyan
 
 # ── Guard: working tree must be clean ────────────────────────────────
 $dirty = git status --porcelain
@@ -93,7 +93,7 @@ $env:GH_TOKEN = $null   # ensure keyring credential is used, not a stale env tok
 Write-Host "Building Windows artifact..." -ForegroundColor Yellow
 & "$PSScriptRoot\..\build.ps1"
 if ($LASTEXITCODE -ne 0) {
-    Write-Error "Build failed — release aborted."
+    Write-Error "Build failed - release aborted."
     exit 1
 }
 
@@ -106,4 +106,4 @@ if (-not (Test-Path $zipPath)) {
 gh release create "v$newVersion" --title "v$newVersion" --notes $notes "$zipPath"
 
 Write-Host ""
-Write-Host "✅ Released v$newVersion" -ForegroundColor Green
+Write-Host "[OK] Released v$newVersion" -ForegroundColor Green
