@@ -131,7 +131,9 @@ def delete_macro(vault_data: dict, macro_id: str) -> None:
 # ---------------------------------------------------------------------------
 
 DEFAULT_SETTINGS: dict = {
-    "clipboard_mode": False,
+    # True = copy to clipboard; False = inject keystrokes (text triggers only —
+    # hotkeys always use clipboard regardless of this setting).
+    "clipboard_mode": True,
     "clipboard_clear_delay": 30.0,
 }
 

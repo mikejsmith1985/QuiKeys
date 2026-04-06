@@ -2,7 +2,12 @@
 Global hotkey listener.
 
 Registers Ctrl+Shift+<digit> combos from the active macro list and calls
-the injector when one fires.
+the clipboard delivery function when one fires.
+
+Hotkeys ALWAYS place text on the clipboard — press Ctrl+V to paste.
+This approach works universally, including Windows security dialogs (UAC,
+Windows Security, credential prompts) where SendInput is blocked by the OS
+but the clipboard is shared with the Secure Desktop.
 
 Usage:
     mgr = HotkeyManager(get_macros_fn)
@@ -20,8 +25,6 @@ import platform
 from typing import Callable
 
 from pynput import keyboard
-
-import injector
 
 
 class HotkeyManager:
@@ -95,29 +98,15 @@ def _make_handler(text: str, get_settings: Callable) -> Callable:
 
 
 def _do_inject(text: str, get_settings: Callable) -> None:
+    """
+    Copy *text* to the system clipboard.
+
+    Hotkeys always use clipboard delivery — SendInput is blocked by the OS on
+    the Windows Secure Desktop (UAC dialogs, Windows Security, credential
+    prompts), but the clipboard IS shared across desktop sessions.  After this
+    fires, press Ctrl+V in any field to paste.
+    """
     from clipboard import copy_to_clipboard
     settings = get_settings()
     clear_delay = float(settings.get("clipboard_clear_delay", 0.0))
-
-    if settings.get("clipboard_mode"):
-        # Clipboard-only mode: just copy, no keystroke injection.
-        copy_to_clipboard(text, clear_after=clear_delay)
-        return
-
-    # Normal mode: inject keystrokes AND copy to clipboard so the user
-    # can paste into secure fields (UAC, password inputs, etc.) with Ctrl+V.
-    from pynput.keyboard import Controller, Key
-    import time
-    kb = Controller()
-    # Release all modifier keys before typing — they are still held
-    # when the GlobalHotKeys callback fires, corrupting injected text.
-    for mod in (Key.ctrl, Key.ctrl_l, Key.ctrl_r,
-                Key.shift, Key.shift_l, Key.shift_r,
-                Key.alt, Key.alt_l, Key.alt_r):
-        try:
-            kb.release(mod)
-        except Exception:
-            pass
-    time.sleep(0.05)  # let the OS process the releases
     copy_to_clipboard(text, clear_after=clear_delay)
-    injector.inject_text(text)

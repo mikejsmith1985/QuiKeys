@@ -129,12 +129,12 @@ class ManagerWindow:
         )
         row += 1
 
-        # Clipboard mode
+        # Clipboard mode (applies to text-trigger expansions only)
         current = vault_mod.get_settings(self._vault)
-        self._clipboard_var = tk.BooleanVar(value=current.get("clipboard_mode", False))
+        self._clipboard_var = tk.BooleanVar(value=current.get("clipboard_mode", True))
         cb = ttk.Checkbutton(
             settings_frame,
-            text="Copy to clipboard instead of typing",
+            text="Copy to clipboard for text triggers (instead of typing)",
             variable=self._clipboard_var,
             command=self._on_clipboard_toggle,
         )
@@ -142,8 +142,9 @@ class ManagerWindow:
         row += 1
         ttk.Label(
             settings_frame,
-            text="Hotkey macros always copy to clipboard — press Ctrl+V to paste\n"
-                 "into secure fields. Enable this to use clipboard for all macros.",
+            text="Hotkey shortcuts (Ctrl+Shift+1–9) always copy to clipboard — press\n"
+                 "Ctrl+V to paste into any field, including Windows security dialogs.\n"
+                 "This option extends clipboard delivery to text trigger expansions too.",
             foreground="gray",
         ).grid(row=row, column=0, columnspan=2, sticky="w", padx=20)
         row += 1
