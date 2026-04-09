@@ -102,6 +102,10 @@ class Expander:
                 clear_delay = float(settings.get("clipboard_clear_delay", 0.0))
                 injector.press_backspace(erase_count)
                 copy_to_clipboard(text, clear_after=clear_delay)
+                # Auto-paste so the expanded text appears in-place, just like
+                # the direct-injection path.  This keeps both clipboard_mode
+                # states feeling identical to the user.
+                injector.paste_from_clipboard()
             else:
                 injector.press_backspace(erase_count)
                 injector.inject_text(text)

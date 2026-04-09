@@ -62,3 +62,18 @@ def press_backspace(n: int) -> None:
         _keyboard.press(Key.backspace)
         _keyboard.release(Key.backspace)
         time.sleep(0.008)
+
+
+def paste_from_clipboard() -> None:
+    """
+    Press Ctrl+V to paste clipboard content into the focused field.
+    Used by the text expander after it writes the expansion to the clipboard,
+    so the text appears in-place without requiring a manual paste.
+    """
+    # Small pause ensures the clipboard write has fully propagated before
+    # the target app receives the Ctrl+V event.
+    time.sleep(0.03)
+    _keyboard.press(Key.ctrl)
+    _keyboard.press('v')
+    _keyboard.release('v')
+    _keyboard.release(Key.ctrl)

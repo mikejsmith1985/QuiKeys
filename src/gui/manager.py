@@ -144,6 +144,7 @@ class ManagerWindow:
             settings_frame,
             text="Hotkey shortcuts (Ctrl+Shift+1–9) always copy to clipboard — press\n"
                  "Ctrl+V to paste into any field, including Windows security dialogs.\n"
+                 "Hotkeys fire even when a credential prompt has keyboard focus.\n"
                  "This option extends clipboard delivery to text trigger expansions too.",
             foreground="gray",
         ).grid(row=row, column=0, columnspan=2, sticky="w", padx=20)
