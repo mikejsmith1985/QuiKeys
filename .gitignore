@@ -18,3 +18,20 @@ env/
 .idea/
 *.suo
 *.user
+
+# Forge Terminal runtime skill directories (auto-generated, not project source)
+.github/skills/branching-strategy/
+.github/skills/code-tutor-workflow/
+.github/skills/code-tutor/
+.github/skills/effectiveness-tracking/
+.github/skills/enterprise-workflow/
+.github/skills/forced-greeting/
+.github/skills/forge-release-process/
+.github/skills/forge-vault/
+.github/skills/github-issue-images/
+.github/skills/multi-agent/
+.github/skills/multi-file-refactor/
+.github/skills/playwright-testing/
+.github/skills/pr-workflow/
+.github/skills/sequential-tasks/
+.github/skills/task-classification/
