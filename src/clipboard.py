@@ -7,10 +7,16 @@ prompts, etc.) where SendInput is blocked by the OS.
 
 The Windows clipboard IS shared with the Secure Desktop, so the user can
 press Ctrl+V to paste after this function copies the macro text.
+
+Why OpenClipboard can fail on security dialogs:
+  Windows credential and security dialogs sometimes hold the clipboard open
+  to block clipboard injection attacks.  A retry loop lets us succeed once
+  the dialog momentarily releases the lock (typically within a few hundred ms).
 """
 
 import platform
 import threading
+import time
 
 _clear_timer: threading.Timer | None = None
 _clear_lock = threading.Lock()
@@ -58,6 +64,11 @@ def _copy_windows(text: str) -> None:
     CF_UNICODETEXT = 13
     GMEM_MOVEABLE = 0x0002
 
+    # How long to keep retrying when a security dialog holds the clipboard lock.
+    # 10 attempts × 50 ms = 500 ms maximum wait before giving up.
+    CLIPBOARD_OPEN_RETRY_COUNT = 10
+    CLIPBOARD_OPEN_RETRY_DELAY_S = 0.05
+
     # Null-terminated UTF-16-LE (native Windows wide string)
     encoded = (text + "\x00").encode("utf-16-le")
 
@@ -72,7 +83,16 @@ def _copy_windows(text: str) -> None:
     ctypes.memmove(p_mem, encoded, len(encoded))
     kernel32.GlobalUnlock(h_mem)
 
-    if not user32.OpenClipboard(None):
+    # Windows security and credential dialogs may hold the clipboard open to
+    # block injection.  Retry until they release it or the timeout expires.
+    clipboard_opened = False
+    for _ in range(CLIPBOARD_OPEN_RETRY_COUNT):
+        if user32.OpenClipboard(None):
+            clipboard_opened = True
+            break
+        time.sleep(CLIPBOARD_OPEN_RETRY_DELAY_S)
+
+    if not clipboard_opened:
         kernel32.GlobalFree(h_mem)
         return
 
