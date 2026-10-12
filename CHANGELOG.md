@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.12] — 2026-10-12
+
+### Fixed
+- **Edited macros now take effect immediately after Lock → Unlock.**
+  The Macro Manager kept a reference to the vault from the previous unlock, so
+  edits made after locking were saved to disk but hotkeys and text triggers kept
+  delivering the old text until QuiKeys was restarted. The Manager is now rebuilt
+  on every unlock so it always edits the live vault.
+- **Hotkeys can no longer go dead after saving a macro.** Reloading hotkeys now
+  waits for the previous listener to release its key combos before re-registering,
+  closing a race where Windows rejected the new registration silently.
+- **Hotkey window creation uses correct 64-bit Win32 types**, removing an access
+  violation raised inside Windows each time hotkeys were (re)registered.
+
+### Added
+- First automated test suite (`tests/`, run with `python -m pytest`) and
+  `requirements-dev.txt`.
+
 ## [0.0.11] — 2026-04-09
 
 ### Fixed
