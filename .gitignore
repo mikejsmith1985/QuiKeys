@@ -35,3 +35,6 @@ env/
 .github/skills/pr-workflow/
 .github/skills/sequential-tasks/
 .github/skills/task-classification/
+
+# Claude Code local settings (per-machine, not project source)
+.claude/
