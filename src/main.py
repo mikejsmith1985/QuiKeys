@@ -136,6 +136,11 @@ def _do_lock(icon=None, item=None) -> None:
 
 
 def _unlock_and_resume() -> None:
+    # The Manager window holds a reference to the vault it was opened with.
+    # Unlocking loads a brand-new vault object, so a kept-alive Manager would
+    # save edits that the running hotkeys and triggers never see.  Discard it
+    # here (on the Tk main thread) so the next open binds to the live vault.
+    _discard_manager_window()
     if not _do_unlock():
         # User cancelled — offer to quit
         if _root:
@@ -151,6 +156,15 @@ def _unlock_and_resume() -> None:
 # ---------------------------------------------------------------------------
 # Manager window
 # ---------------------------------------------------------------------------
+
+def _discard_manager_window() -> None:
+    """Destroy the cached Manager window so it cannot edit a vault from a previous unlock."""
+    global _manager_win
+    if _manager_win is None:
+        return
+    _manager_win.win.destroy()
+    _manager_win = None
+
 
 def _open_manager(icon=None, item=None) -> None:
     global _manager_win

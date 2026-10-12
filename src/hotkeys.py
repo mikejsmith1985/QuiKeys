@@ -123,6 +123,10 @@ class _Win32HotkeyListener:
     _WM_HOTKEY = 0x0312
     _WM_QUIT = 0x0012
 
+    # Upper bound on how long stop() waits for the message loop to exit, so a
+    # wedged thread can never freeze the Manager window on save.
+    _STOP_JOIN_TIMEOUT_SECONDS = 2.0
+
     # Win32 modifier flag bitmasks for RegisterHotKey
     _MODIFIER_FLAGS: dict[str, int] = {
         "ctrl":    0x0002,  # MOD_CONTROL
@@ -176,6 +180,12 @@ class _Win32HotkeyListener:
             ctypes.windll.user32.PostThreadMessageW(
                 self._win32_thread_id, self._WM_QUIT, 0, 0
             )
+        # Wait until the old thread has unregistered its hotkeys.  Without this,
+        # a reload can try to register the same combo while it is still held,
+        # Windows rejects it, and the hotkey silently stops working.
+        if self._thread is not None:
+            self._thread.join(timeout=self._STOP_JOIN_TIMEOUT_SECONDS)
+            self._thread = None
 
     # ------------------------------------------------------------------
     def _run_message_loop(self) -> None:
@@ -185,6 +195,8 @@ class _Win32HotkeyListener:
         """
         user32 = ctypes.windll.user32
         kernel32 = ctypes.windll.kernel32
+
+        _declare_win32_signatures(user32, kernel32)
 
         # Store the Win32 thread ID so stop() can post WM_QUIT to this thread.
         self._win32_thread_id = kernel32.GetCurrentThreadId()
@@ -267,6 +279,30 @@ class _Win32HotkeyListener:
                 vk_code = ord(part.upper())
 
         return modifier_flags, vk_code
+
+
+def _declare_win32_signatures(user32, kernel32) -> None:
+    """
+    Tell ctypes the real 64-bit argument and return types of the window APIs.
+
+    By default ctypes treats every return value as a 32-bit int, which chops
+    the top half off 64-bit handles (module and window handles) and makes
+    Windows read a garbage address while creating the hotkey window.
+    """
+    kernel32.GetModuleHandleW.restype = ctypes.wintypes.HMODULE
+    kernel32.GetModuleHandleW.argtypes = [ctypes.wintypes.LPCWSTR]
+    user32.CreateWindowExW.restype = ctypes.wintypes.HWND
+    user32.CreateWindowExW.argtypes = [
+        ctypes.wintypes.DWORD, ctypes.wintypes.LPCWSTR, ctypes.wintypes.LPCWSTR,
+        ctypes.wintypes.DWORD, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int,
+        ctypes.wintypes.HWND, ctypes.wintypes.HMENU, ctypes.wintypes.HINSTANCE,
+        ctypes.wintypes.LPVOID,
+    ]
+    user32.RegisterHotKey.argtypes = [
+        ctypes.wintypes.HWND, ctypes.c_int, ctypes.wintypes.UINT, ctypes.wintypes.UINT,
+    ]
+    user32.UnregisterHotKey.argtypes = [ctypes.wintypes.HWND, ctypes.c_int]
+    user32.DestroyWindow.argtypes = [ctypes.wintypes.HWND]
 
 
 # ---------------------------------------------------------------------------
