@@ -4,7 +4,7 @@ import os
 import platform
 
 APP_NAME = "QuiKeys"
-APP_VERSION = "0.0.11"
+APP_VERSION = "0.0.12"
 
 PLATFORM = platform.system()  # "Windows", "Darwin", "Linux"
 
